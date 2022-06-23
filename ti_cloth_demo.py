@@ -28,11 +28,9 @@ class UI:
         # other flags and data
         self.mouth_left_pressed = False
         self.mouth_right_pressed = False
-        self.camera_pos = np.array([0, 0, 1.5])
-        self.camera_lookat = np.array([0, 0, 1])
+        self.camera_R = np.eye(3, dtype = np.float32)
+        self.camera_t = np.array([0, 0, 1])
         self.camera_up = np.array([0, 1, 0])
-        self.arcball_R = np.eye(3, dtype = np.float32)
-        self.arcball_t = np.zeros(3, dtype = np.float32)
         self.mouse_pt = (0.0, 0.0)
         self.arcball = ArcBall()
         self.should_exit = False
@@ -53,8 +51,8 @@ class UI:
         # set camera
         camera = ti.ui.make_camera()
         camera.projection_mode(ti.ui.ProjectionMode(0))
-        cam_p = np.dot(self.arcball_R, self.camera_pos)
-        cam_u = np.dot(self.arcball_R, self.camera_up)
+        cam_u = np.dot(self.camera_R, self.camera_up)
+        cam_p = np.dot(self.camera_R, self.camera_t)
         camera.position(cam_p[0], cam_p[1], cam_p[2])
         camera.lookat(0, 0, 0)
         camera.up(cam_u[0], cam_u[1], cam_u[2])
@@ -119,7 +117,7 @@ class UI:
         print('left mouse press event: ', pt)
 
     def left_mouse_drag_event(self, pt):
-        self.arcball_R, self.arcball_t = self.arcball.drag(pt)
+        self.camera_R, self.camera_t = self.arcball.drag(pt, self.camera_R, self.camera_t)
 
     def left_mouse_release_event(self, pt):
         print('left mouse release event: ', pt)

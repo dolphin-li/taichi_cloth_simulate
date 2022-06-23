@@ -11,7 +11,7 @@ class ArcBall:
         self.__st_vec = self.__sphere_map(pt)
         self.__last_R = np.eye(3, 3)
 
-    def drag(self, pt):
+    def drag(self, pt, cam_R, cam_t):
         if np.linalg.det(self.__last_R) == 0.0:
             return
         q = Quaternion(axis=[1,0,0], angle=0.0)
@@ -20,8 +20,9 @@ class ArcBall:
         if np.linalg.norm(perp_vec) > 1e-5:
             q = Quaternion(axis=perp_vec, angle=2.0 * np.arccos(np.dot(self.__st_vec, ed_vec)))
         R = np.dot(q.rotation_matrix, np.linalg.inv(self.__last_R))
-        t = self.__center - np.dot(R, self.__center)
-        self.__last_R = R
+        R = np.dot(R, cam_R)
+        t = cam_t - np.dot(cam_R - R, self.__center)
+        self.__last_R = q.rotation_matrix
         return R, t
 
     def set_center(self, c):
@@ -37,8 +38,8 @@ class ArcBall:
         ret = np.zeros(3, dtype=np.float32)
         if len > 1.0:
             norm = 1.0 / np.sqrt(len)
-            ret[0] = x * norm
-            ret[1] = y * norm
+            ret[0] = - x * norm
+            ret[1] =  y * norm
             ret[2] = 0.0
         else:
             ret[0] = x
