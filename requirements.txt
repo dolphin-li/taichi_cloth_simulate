@@ -1,2 +1,2 @@
 taichi
-numpy-quaternion
+pyquaternion

@@ -1,55 +1,8 @@
 import taichi as ti
 import numpy as np
 import pywavefront as pyw
-import quaternion
-
-@ti.data_oriented
-class BaseMesh:
-    def __init__(self, mesh_obj):
-        self.n_verts = len(mesh_obj.vertices)
-        data_verts = np.array(mesh_obj.vertices, dtype=np.float32)
-        self.n_tris = 0
-        data_triangles = []
-        for name in mesh_obj.meshes:
-            mesh = mesh_obj.meshes[name]
-            self.n_tris += len(mesh.faces)
-            if not data_triangles:
-                data_triangles = mesh.faces
-            else:
-                data_triangles.append(mesh.faces)
-        data_triangles = np.array(data_triangles, dtype = np.int32)
-        self.verts = ti.Vector.field(3, ti.f32, self.n_verts)
-        self.tris = ti.Vector.field(3, ti.i32, self.n_tris)
-        self.vnormals = ti.Vector.field(3, ti.f32, self.n_verts)
-        self.vcolors = ti.Vector.field(3, ti.f32, self.n_verts)
-        self.normal_weights = ti.field(ti.f32, self.n_verts)
-        self.verts.from_numpy(data_verts)
-        self.tris.from_numpy(data_triangles)
-        self.vcolors.fill(1.0)
-        self.update_normal()
-    
-    @ti.kernel
-    def update_normal(self):
-        for i in self.verts:
-            self.normal_weights[i] = 0.0
-            self.vnormals[i] = (0.0, 0.0, 0.0)
-        for i in self.tris:
-            tri = self.tris[i]
-            a = self.verts[tri[0]]
-            b = self.verts[tri[1]]
-            c = self.verts[tri[2]]
-            dir = (b-a).cross(c-a)
-            area = dir.norm()
-            self.vnormals[tri[0]] += dir
-            self.vnormals[tri[1]] += dir
-            self.vnormals[tri[2]] += dir
-            self.normal_weights[tri[0]] += area
-            self.normal_weights[tri[1]] += area
-            self.normal_weights[tri[2]] += area
-        for i in self.verts:
-            w = self.normal_weights[i]
-            if w != 0.0:
-                self.vnormals[i] /= w    
+from ti_base_mesh import BaseMesh
+from arcball import ArcBall
 
 @ti.data_oriented
 class Cloth(BaseMesh):
@@ -59,54 +12,11 @@ class Cloth(BaseMesh):
 class Body(BaseMesh):
     pass
 
-class ArcBall:
-    def __init__(self):
-        self.__st_vec = np.zeros(3, 1)
-        self.__last_R = np.zeros(3, 3)
-        self.__center = np.zeros(3, 1)
-
-    def set_center(self, c):
-        self.center = c
-
-    def get_center(self):
-        return self.__center
-    
-    def click(self, pt):
-        self.__st_vec = self.__sphere_map(pt)
-        self.__last_R = np.eye(3, 3)
-
-    def drag(self, pt):
-        if np.linalg.det(self.__last_R) == 0.0:
-            return
-        ed_vec = self.__sphere_map(pt)
-        perp_vec = np.cross(self.__st_vec, ed_vec)
-        if np.norm(perp_vec) < 1e-5:
-            pass
-        else:
-            pass
-
-    def __sphere_map(self, pt):
-        x = pt[0] * 2.0 - 1.0
-        y = pt[1] * 2.0 - 1.0
-        len = x * x + y * y
-        ret = np.zeros(3, 1)
-        if len > 1.0:
-            norm = 1.0 / np.sqrt(len)
-            ret[0] = x * norm
-            ret[1] = y * norm
-            ret[2] = 0.0
-        else:
-            ret[0] = x * norm
-            ret[1] = y * norm
-            ret[2] = np.sqrt(1.0 - len)
-        return ret
-
-
 class UI:
     def __init__(self):
         # load mesh
-        body_obj = pyw.Wavefront('body.obj', collect_faces=True)
-        cloth_obj = pyw.Wavefront('skirt.obj', collect_faces=True)
+        body_obj = pyw.Wavefront('data/body.obj', collect_faces=True)
+        cloth_obj = pyw.Wavefront('data/skirt.obj', collect_faces=True)
 
         # init ti
         self.cloth = Cloth(cloth_obj)
@@ -118,7 +28,13 @@ class UI:
         # other flags and data
         self.mouth_left_pressed = False
         self.mouth_right_pressed = False
+        self.camera_pos = np.array([0, 0, 1.5])
+        self.camera_lookat = np.array([0, 0, 1])
+        self.camera_up = np.array([0, 1, 0])
+        self.arcball_R = np.eye(3, dtype = np.float32)
+        self.arcball_t = np.zeros(3, dtype = np.float32)
         self.mouse_pt = (0.0, 0.0)
+        self.arcball = ArcBall()
         self.should_exit = False
 
     def render(self):
@@ -137,9 +53,11 @@ class UI:
         # set camera
         camera = ti.ui.make_camera()
         camera.projection_mode(ti.ui.ProjectionMode(0))
-        camera.position(0, 0, 1.5)
+        cam_p = np.dot(self.arcball_R, self.camera_pos)
+        cam_u = np.dot(self.arcball_R, self.camera_up)
+        camera.position(cam_p[0], cam_p[1], cam_p[2])
         camera.lookat(0, 0, 0)
-        camera.up(0, 1, 0)
+        camera.up(cam_u[0], cam_u[1], cam_u[2])
         camera.fov(45)
 
         # config scene
@@ -197,10 +115,11 @@ class UI:
                 self.mouth_right_pressed = False
 
     def left_mouse_press_event(self, pt):
+        self.arcball.click(pt)
         print('left mouse press event: ', pt)
 
     def left_mouse_drag_event(self, pt):
-        print('left mouse drag event: ', pt)
+        self.arcball_R, self.arcball_t = self.arcball.drag(pt)
 
     def left_mouse_release_event(self, pt):
         print('left mouse release event: ', pt)
