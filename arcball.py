@@ -32,14 +32,14 @@ class ArcBall:
         return self.__center
 
     def __sphere_map(self, pt):
-        x = -(pt[0] * 2.0 - 1.0)
-        y = -(pt[1] * 2.0 - 1.0)
+        x = pt[0] * 2.0 - 1.0
+        y = pt[1] * 2.0 - 1.0
         len = x * x + y * y
         ret = np.zeros(3, dtype=np.float32)
         if len > 1.0:
             norm = 1.0 / np.sqrt(len)
-            ret[0] = - x * norm
-            ret[1] =  y * norm
+            ret[0] = x * norm
+            ret[1] = y * norm
             ret[2] = 0.0
         else:
             ret[0] = x

@@ -29,9 +29,10 @@ class UI:
         self.mouth_left_pressed = False
         self.mouth_right_pressed = False
         self.camera_R = np.eye(3, dtype = np.float32)
-        self.camera_t = np.array([0, 0, 1])
+        self.camera_t = np.array([0, 0, 1.2])
         self.camera_up = np.array([0, 1, 0])
         self.mouse_pt = (0.0, 0.0)
+        self.light_pos = (10.0, 10.0, 10.0)
         self.arcball = ArcBall()
         self.should_exit = False
 
@@ -51,8 +52,9 @@ class UI:
         # set camera
         camera = ti.ui.make_camera()
         camera.projection_mode(ti.ui.ProjectionMode(0))
-        cam_u = np.dot(self.camera_R, self.camera_up)
-        cam_p = np.dot(self.camera_R, self.camera_t)
+        cam_invR = np.linalg.inv(self.camera_R)
+        cam_u = np.dot(cam_invR, self.camera_up)
+        cam_p = np.dot(cam_invR, self.camera_t)
         camera.position(cam_p[0], cam_p[1], cam_p[2])
         camera.lookat(0, 0, 0)
         camera.up(cam_u[0], cam_u[1], cam_u[2])
@@ -61,7 +63,8 @@ class UI:
         # config scene
         scene = ti.ui.Scene()
         scene.set_camera(camera)
-        scene.point_light((10, 10, 10), (1, 1, 1))
+        light_p = np.dot(cam_invR, self.light_pos)
+        scene.point_light((light_p[0], light_p[1], light_p[2]), (1, 1, 1))
         scene.ambient_light((0.1, 0.1, 0.1))
 
         # render mesh
@@ -114,13 +117,12 @@ class UI:
 
     def left_mouse_press_event(self, pt):
         self.arcball.click(pt)
-        print('left mouse press event: ', pt)
 
     def left_mouse_drag_event(self, pt):
         self.camera_R, self.camera_t = self.arcball.drag(pt, self.camera_R, self.camera_t)
 
     def left_mouse_release_event(self, pt):
-        print('left mouse release event: ', pt)
+        pass
 
     def right_mouse_press_event(self, pt):
         print('right mouse press event: ', pt)
