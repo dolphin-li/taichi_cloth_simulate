@@ -16,21 +16,45 @@ class BaseMesh:
                 data_triangles = mesh.faces
             else:
                 data_triangles.append(mesh.faces)
+        data_edges = self._calc_edges(data_triangles)
+        self.n_edges = len(data_edges)
+        data_edges = np.array(data_edges, dtype = np.int32)
         data_triangles = np.array(data_triangles, dtype = np.int32)
         self.verts = ti.Vector.field(3, ti.f32, self.n_verts)
         self.tris = ti.Vector.field(3, ti.i32, self.n_tris)
+        self.edges = ti.Vector.field(2, ti.i32, self.n_edges)
         self.vnormals = ti.Vector.field(3, ti.f32, self.n_verts)
         self.vcolors = ti.Vector.field(3, ti.f32, self.n_verts)
-        self.normal_weights = ti.field(ti.f32, self.n_verts)
+        self._normal_weights = ti.field(ti.f32, self.n_verts)
         self.verts.from_numpy(data_verts)
         self.tris.from_numpy(data_triangles)
+        self.edges.from_numpy(data_edges)
         self.vcolors.fill(1.0)
         self.update_normal()
+
+    def _calc_edges(self, data_triangles):
+        data_edges = []
+        for i in range(len(data_triangles)):
+            t = data_triangles[i]
+            data_edges.append((t[0], t[1]))
+            data_edges.append((t[0], t[2]))
+            data_edges.append((t[1], t[0]))
+            data_edges.append((t[1], t[2]))
+            data_edges.append((t[2], t[0]))
+            data_edges.append((t[2], t[1]))
+        data_edges.sort()
+        data_edges = self._unique(data_edges)
+        return data_edges
+
+    def _unique(self, seq):
+        seen = set()
+        seen_add = seen.add
+        return [x for x in seq if not (x in seen or seen_add(x))]
     
     @ti.kernel
     def update_normal(self):
         for i in self.verts:
-            self.normal_weights[i] = 0.0
+            self._normal_weights[i] = 0.0
             self.vnormals[i] = (0.0, 0.0, 0.0)
         for i in self.tris:
             tri = self.tris[i]
@@ -42,11 +66,11 @@ class BaseMesh:
             self.vnormals[tri[0]] += dir
             self.vnormals[tri[1]] += dir
             self.vnormals[tri[2]] += dir
-            self.normal_weights[tri[0]] += area
-            self.normal_weights[tri[1]] += area
-            self.normal_weights[tri[2]] += area
+            self._normal_weights[tri[0]] += area
+            self._normal_weights[tri[1]] += area
+            self._normal_weights[tri[2]] += area
         for i in self.verts:
-            w = self.normal_weights[i]
+            w = self._normal_weights[i]
             if w != 0.0:
                 self.vnormals[i] /= w
 

@@ -2,16 +2,9 @@ import taichi as ti
 import numpy as np
 import pywavefront as pyw
 from ti_base_mesh import BaseMesh
+from ti_cloth_mesh import ClothMesh
+from ti_body_mesh import BodyMesh
 from arcball import ArcBall
-
-@ti.data_oriented
-class Cloth(BaseMesh):
-    def __init__(self, mesh_obj):
-        super().__init__(mesh_obj)
-
-@ti.data_oriented
-class Body(BaseMesh):
-    pass
 
 class UI:
     def __init__(self):
@@ -20,8 +13,8 @@ class UI:
         cloth_obj = pyw.Wavefront('data/skirt.obj', collect_faces=True)
 
         # init ti
-        self.cloth = Cloth(cloth_obj)
-        self.body = Body(body_obj)
+        self.cloth = ClothMesh(cloth_obj)
+        self.body = BodyMesh(body_obj)
 
         # create window
         self.window = ti.ui.Window('ti_cloth', (640, 480))
