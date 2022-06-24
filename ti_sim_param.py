@@ -10,3 +10,4 @@ class SimParam:
         self.bending_stiffness = bending_stiffness
         self.fix_stiffness = fix_stiffness
         self.dt = dt
+        self.gravity = [0.0, -9.8, 0.0]

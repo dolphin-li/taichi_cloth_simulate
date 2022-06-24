@@ -15,7 +15,7 @@ class UI:
         cloth_obj = pyw.Wavefront('data/skirt.obj', collect_faces=True)
 
         # init ti
-        sim_param = SimParam(total_mass = 1.0, spring_stiffness = 1000.0, bending_stiffness = 100.0, fix_stiffness = 1.0e5, dt = 1.0/240.0)
+        sim_param = SimParam(total_mass = 1.0, spring_stiffness = 100.0, bending_stiffness = 1.0, fix_stiffness = 1.0e3, dt = 1.0/240.0)
         self.cloth = ClothMesh(cloth_obj, sim_param)
         self.body = BodyMesh(body_obj)
         self.solver = PbdSolver(self.cloth, self.body, sim_param)
@@ -33,21 +33,26 @@ class UI:
         self.light_pos = (10.0, 10.0, 10.0)
         self.arcball = ArcBall()
         self.should_exit = False
+        self.simulating = False
+        self.frame_id = 0
 
     def render(self):
         while self.window.running:
             self.update_event()
-            self.update_solver()
+            if self.simulating:
+                self.update_solver()
             self.update_canvas()
 
             # flush render
             self.window.show()
+            self.frame_id += 1
             if self.should_exit: break
 
     def update_solver(self):
         self.solver.update()
         self.cloth.update_normal()
-        pass
+        if self.frame_id % 1000 == 0:
+            ti.print_kernel_profile_info('count')
 
     def update_canvas(self):
         canvas = self.window.get_canvas()
@@ -72,7 +77,7 @@ class UI:
         scene.ambient_light((0.1, 0.1, 0.1))
 
         # render mesh
-        scene.mesh(self.cloth.verts, self.cloth.tris, self.cloth.vnormals, (0.9,0.6,0.3))
+        scene.mesh(self.solver.vec_X, self.cloth.tris, self.cloth.vnormals, (0.9,0.6,0.3))
         scene.mesh(self.body.verts, self.body.tris, self.body.vnormals, (1.0,1.0,1.0))
 
         # set scene
@@ -91,6 +96,11 @@ class UI:
         if self.window.get_event(ti.ui.PRESS):
             if self.window.event.key in [ti.ui.ESCAPE]: 
                 self.should_exit = True
+            if self.window.event.key == 's':
+                self.simulating = not self.simulating 
+                print('simulating: ', self.simulating)
+            if self.window.event.key == 'a':
+                self.update_solver()
         
         # mouse event processing
         last_p = self.mouse_pt;
