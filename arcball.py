@@ -9,7 +9,7 @@ class ArcBall:
     
     def click(self, pt):
         self.__st_vec = self.__sphere_map(pt)
-        self.__last_R = np.eye(3, 3)
+        self.__last_R = np.eye(3, dtype=np.float32)
 
     def drag(self, pt, cam_R, cam_t):
         if np.linalg.det(self.__last_R) == 0.0:
