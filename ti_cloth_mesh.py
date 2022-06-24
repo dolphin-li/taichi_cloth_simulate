@@ -4,8 +4,9 @@ from ti_base_mesh import BaseMesh
 
 @ti.data_oriented
 class ClothMesh(BaseMesh):
-    def __init__(self, mesh_obj):
+    def __init__(self, mesh_obj, sim_param):
         super().__init__(mesh_obj)
+        self.total_mass = sim_param.total_mass
         self.verts_mass = ti.field(ti.f32, self.n_verts)
         self.edges_length_rest = ti.field(ti.f32, self.n_edges)
         self.compute_verts_mass()
@@ -24,6 +25,12 @@ class ClothMesh(BaseMesh):
             self.verts_mass[tri[0]] += area
             self.verts_mass[tri[1]] += area
             self.verts_mass[tri[2]] += area
+        sum_mass = 0.0
+        for i in self.verts_mass:
+            sum_mass += self.verts_mass[i]
+        mass_scale = self.total_mass / sum_mass
+        for i in self.verts:
+            self.verts_mass[i] *= mass_scale
 
     @ti.kernel
     def compute_edge_length_rest(self):
