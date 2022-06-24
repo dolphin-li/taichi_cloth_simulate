@@ -6,7 +6,8 @@ from arcball import ArcBall
 
 @ti.data_oriented
 class Cloth(BaseMesh):
-    pass
+    def __init__(self, mesh_obj):
+        super().__init__(mesh_obj)
 
 @ti.data_oriented
 class Body(BaseMesh):
@@ -135,7 +136,7 @@ class UI:
 
 
 if __name__ == "__main__":
-    ti.init(arch=ti.gpu, kernel_profiler=True)
+    ti.init(arch=ti.gpu, device_memory_GB=2, packed=True, kernel_profiler=True)
 
     ui = UI()
     ui.render()

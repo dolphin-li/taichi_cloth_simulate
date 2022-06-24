@@ -26,7 +26,7 @@ class ArcBall:
         return R, t
 
     def set_center(self, c):
-        self.center = c
+        self.__center = c
 
     def get_center(self):
         return self.__center
