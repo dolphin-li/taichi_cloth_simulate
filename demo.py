@@ -15,7 +15,7 @@ class UI:
         cloth_obj = pyw.Wavefront('data/skirt.obj', collect_faces=True)
 
         # init ti
-        sim_param = SimParam(total_mass = 1.0, spring_stiffness = 1000.0, fix_stiffness = 1.0e5, dt = 1.0/240.0)
+        sim_param = SimParam(total_mass = 1.0, spring_stiffness = 1000.0, bending_stiffness = 100.0, fix_stiffness = 1.0e5, dt = 1.0/240.0)
         self.cloth = ClothMesh(cloth_obj, sim_param)
         self.body = BodyMesh(body_obj)
         self.solver = PbdSolver(self.cloth, self.body, sim_param)

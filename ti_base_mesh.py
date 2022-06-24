@@ -27,7 +27,7 @@ class BaseMesh:
         self.vcolors.fill(1.0)
         self.update_normal()
 
-    def _unique(self, seq):
+    def unique(self, seq):
         seen = set()
         seen_add = seen.add
         return [x for x in seq if not (x in seen or seen_add(x))]
